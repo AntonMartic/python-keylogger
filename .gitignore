@@ -22,3 +22,11 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# PyInstaller and build artifacts
+dist/
+build/
+*.spec
+
+# Environment variables
+.env

